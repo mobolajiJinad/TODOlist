@@ -30,9 +30,9 @@ app.use(notFoundHandler);
 const port = process.env.PORT || 3000;
 const uri = process.env.MONGO_URI;
 
-const start = async () => {
-  let server;
+let server;
 
+const start = async () => {
   try {
     await startDBConnection(uri);
 
