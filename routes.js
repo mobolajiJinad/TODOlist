@@ -1,110 +1,58 @@
-const express = require("express");
+const Joi = require("joi");
+const mongoose = require("mongoose");
+const router = require("express").Router();
 
 const Tasks = require("./Task");
+const {
+  getAllTasks,
+  createTask,
+  getTaskByID,
+  updateTaskByID,
+  deleteTaskByID,
+} = require("./routesController");
 
-const router = express.Router();
-
-router
-  .route("/")
-  .get(async (req, res) => {
-    try {
-      const tasks = await Tasks.find();
-
-      res.status(200).json({
-        task: tasks,
-      });
-    } catch (err) {
-      res.json({ error: err.message });
-    }
-  })
-  .post(async (req, res) => {
-    try {
-      const { title, description } = req.body;
-
-      if (!title) {
-        return res.status().json({ msg: "You have to enter a title." });
-      }
-
-      if (!description) {
-        return res
-          .status()
-          .json({ msg: "Cannot save task without description." });
-      }
-
-      const task = await new Tasks({ title, description }).save();
-
-      res.status(200).json({
-        msg: {
-          status: "Task saved",
-          task: task,
-        },
-      });
-    } catch (err) {
-      res.json({ error: err.message });
-    }
+const validateTask = (req, res, next) => {
+  const taskSchema = Joi.object({
+    title: Joi.string().required(),
+    description: Joi.string().required(),
   });
+
+  const { error } = taskSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+  next();
+};
+
+const validateTaskID = async (req, res, next) => {
+  const { taskID } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(taskID)) {
+    return res.status(400).json({ error: "Invalid task ID" });
+  }
+
+  try {
+    const task = await Tasks.findById(taskID);
+
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    req.task = task;
+    next();
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+router.route("/").get(getAllTasks).post(validateTask, createTask);
 
 router
   .route("/:taskID")
-  .get(async (req, res) => {
-    try {
-      const { taskID } = req.params;
-
-      const task = await Tasks.findById(taskID);
-
-      if (!task) {
-        return res.json({ msg: "Invalid task id" });
-      }
-
-      res.status(200).json({ task });
-    } catch (err) {
-      res.json({ error: err.message });
-    }
-  })
-  .put(async (req, res) => {
-    try {
-      const { taskID } = req.params;
-      const { title, description } = req.body;
-
-      if (!title && !description) {
-        return res.json({ msg: "Please enter title and/or description" });
-      }
-
-      const task = await Tasks.findById(taskID);
-
-      if (title && description) {
-        await task.updateOne({ title, description });
-      }
-
-      if (title && !description) {
-        await task.updateOne({ title });
-      }
-
-      if (!title && description) {
-        await task.updateOne({ description });
-      }
-
-      res.json({ msg: "Task has been updated" });
-    } catch (err) {
-      res.json({ error: err.message });
-    }
-  })
-  .delete(async (req, res) => {
-    try {
-      const { taskID } = req.params;
-
-      const task = await Tasks.findById(taskID);
-
-      if (!task) {
-        return res.json({ msg: "Invalid task id" });
-      }
-
-      await Tasks.findByIdAndDelete(taskID);
-
-      res.status(200).json({ msg: "Task deleted." });
-    } catch (err) {
-      res.json({ error: err.message });
-    }
-  });
+  .get(validateTaskID, getTaskByID)
+  .put(validateTaskID, updateTaskByID)
+  .delete(validateTaskID, deleteTaskByID);
 
 module.exports = router;

@@ -12,6 +12,21 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/tasks", routes);
 
+const errorHandler = (err, req, res, next) => {
+  console.error(err);
+
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const notFoundHandler = (req, res, next) => {
+  res.status(404).json({ error: "Route not found" });
+};
+
+app.use(errorHandler);
+app.use(notFoundHandler);
+
 const port = process.env.PORT || 3000;
 const uri = process.env.MONGO_URI;
 
