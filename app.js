@@ -10,11 +10,11 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/", (req,res) => {
-  return res.redirect("/tasks")
-});
-
 app.use("/tasks", routes);
+
+app.use("/", (req, res) => {
+  return res.redirect("/tasks");
+});
 
 const errorHandler = (err, req, res, next) => {
   console.error(err);
