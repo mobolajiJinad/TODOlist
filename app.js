@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/", (req,res) => {
-  res.redirect("/tasks")
+  return res.redirect("/tasks")
 });
 
 app.use("/tasks", routes);
